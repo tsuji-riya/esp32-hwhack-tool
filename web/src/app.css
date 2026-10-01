@@ -1,0 +1,18 @@
+body { margin: 0; background: var(--bgColor-default); color: var(--fgColor-default); }
+.page { max-width: 1040px; margin: 0 auto; padding: var(--base-size-16); }
+.panel { display: flex; flex-direction: column; gap: var(--base-size-16); padding-top: var(--base-size-16); }
+.card { border: 1px solid var(--borderColor-default); border-radius: var(--borderRadius-medium); padding: var(--base-size-16); background: var(--bgColor-muted); }
+.card > h3 { margin: 0 0 var(--base-size-12); font-size: var(--text-title-size-small); }
+.row { display: flex; flex-wrap: wrap; gap: var(--base-size-12); align-items: flex-end; }
+.grow { flex: 1 1 200px; min-width: 0; }
+.mono { font-family: var(--fontStack-monospace); }
+.terminal { height: 380px; overflow: auto; margin: 0; padding: var(--base-size-12); background: var(--bgColor-inset); border: 1px solid var(--borderColor-default); border-radius: var(--borderRadius-medium); font-family: var(--fontStack-monospace); font-size: 13px; white-space: pre-wrap; word-break: break-all; }
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: var(--base-size-4) var(--base-size-16); margin: 0; }
+.kv dt { color: var(--fgColor-muted); }
+.kv dd { margin: 0; font-family: var(--fontStack-monospace); }
+.log { max-height: 180px; overflow: auto; margin: 0; padding: var(--base-size-8) var(--base-size-12); background: var(--bgColor-inset); border-radius: var(--borderRadius-medium); font-family: var(--fontStack-monospace); font-size: 12px; white-space: pre-wrap; }
+[hidden] { display: none !important; }
+.console { position: relative; box-sizing: border-box; height: min(440px, 60vh); border: 1px solid var(--borderColor-default); border-radius: var(--borderRadius-medium); overflow: hidden; }
+/* No padding/border here: FitAddon measures this element, so it must be exactly the terminal area. */
+.console-host { position: absolute; inset: var(--base-size-8); }
+.console-host .xterm, .console-host .xterm-viewport { background: transparent !important; }
