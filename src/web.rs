@@ -46,9 +46,10 @@ async fn asset(
     name: heapless::String<64>,
 ) -> Result<impl picoserve::response::IntoResponse, (picoserve::response::StatusCode, &'static str)>
 {
-    match find(&name) {
+    // The segment route is checked before "/" and also matches an empty segment.
+    let name = if name.is_empty() { "index.html" } else { &name };
+    match find(name) {
         Some(a) => Ok(respond(a)),
-        // Unknown paths fall back to the SPA entry point.
         None => Err((picoserve::response::StatusCode::NOT_FOUND, "not found")),
     }
 }
@@ -64,10 +65,8 @@ fn make_app() -> Router<impl PathRouter> {
             "/ws/flash",
             get(|upgrade: WebSocketUpgrade| async move { upgrade.on_upgrade(FlashWs) }),
         )
-        .route(
-            ("/", parse_path_segment::<heapless::String<64>>()),
-            get(asset),
-        )
+        // The segment parser consumes the leading `/` itself, so no "/" prefix here.
+        .route(parse_path_segment::<heapless::String<64>>(), get(asset))
 }
 
 #[embassy_executor::task(pool_size = WEB_TASKS)]
