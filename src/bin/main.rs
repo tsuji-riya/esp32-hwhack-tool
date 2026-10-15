@@ -24,14 +24,15 @@ use esp32_hwhack_tool::config::{
     FLASH_DEVICES, SPI_DEFAULT_HZ, UART_DEFAULT_BAUD, WEB_TASKS, WIFI_SSID,
 };
 use esp32_hwhack_tool::flash_hub::{HUB, Hub};
-use esp32_hwhack_tool::uart_bridge::{UART, UartPort};
+use esp32_hwhack_tool::uart_bridge::uart_task;
 use esp32_hwhack_tool::{web, wifi};
 use static_cell::StaticCell;
 
 #[panic_handler]
 fn panic(panic_info: &core::panic::PanicInfo) -> ! {
     error!("{}", panic_info);
-    loop {}
+    // Reboot instead of hanging, so the device comes back on its own.
+    esp_hal::system::software_reset()
 }
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
@@ -69,7 +70,7 @@ async fn main(spawner: Spawner) -> ! {
     .with_tx(peripherals.GPIO25)
     .with_rx(peripherals.GPIO26)
     .into_async();
-    *UART.lock().await = Some(UartPort(uart));
+    spawner.spawn(uart_task(uart).unwrap());
 
     // --- Target SPI flash bus (VSPI pins) ---------------------------------------------------
     //   SCK GPIO18, MOSI GPIO23, MISO GPIO19, chip selects GPIO5 / GPIO21 / GPIO22.
