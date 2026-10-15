@@ -167,7 +167,9 @@ impl WebSocketCallback for UartWs {
                         tx.send_text("warn: uart rx data lost").await?;
                     }
                 }
-                WsEither::Second(Either::Second(())) => return tx.close((1001, "idle timeout")).await,
+                WsEither::Second(Either::Second(())) => {
+                    return tx.close((1001, "idle timeout")).await;
+                }
             }
         }
     }
