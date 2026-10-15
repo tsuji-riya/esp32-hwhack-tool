@@ -20,6 +20,7 @@ wss.on('connection', (ws, req) => {
     ws.on('message', (data, isBinary) => {
       if (isBinary) ws.send(data)
       else {
+        if (data.toString() === 'ping') return ws.send('pong')
         const m = /^baud (\d+)/.exec(data.toString())
         if (m) baud = Number(m[1])
         ws.send('ok')

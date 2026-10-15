@@ -10,6 +10,12 @@ const FORMATS = ['8N1', '8E1', '8O1', '8N2', '7E1', '7O1']
 /** What the Enter key sends (xterm.js produces CR). */
 const ENTER: Record<string, string> = {cr: '\r', lf: '\n', crlf: '\r\n'}
 const MAX_LOG = 1024 * 1024
+/** The device accepts WebSocket messages of at most 1 KiB, so long pastes are split. */
+const SEND_CHUNK = 512
+/** Keep-alive period; the device drops sessions idle for 20 s. */
+const PING_MS = 5000
+/** No message from the device (it answers every ping) for this long means it is gone. */
+const DEAD_MS = 15000
 
 const THEMES = {
   dark: {background: '#0d1117', foreground: '#e6edf3', cursor: '#e6edf3', selectionBackground: '#264f78'},
@@ -72,8 +78,8 @@ export function UartPanel() {
     term.onData(data => {
       const ws = wsRef.current
       if (!ws || ws.readyState !== WebSocket.OPEN) return
-      const out = data.replace(/\r/g, enterRef.current)
-      ws.send(enc.encode(out))
+      const out = enc.encode(data.replace(/\r/g, enterRef.current))
+      for (let i = 0; i < out.length; i += SEND_CHUNK) ws.send(out.subarray(i, i + SEND_CHUNK))
       if (echoRef.current) term.write(data === '\r' ? '\r\n' : data)
     })
 
@@ -86,19 +92,39 @@ export function UartPanel() {
   }, [])
 
   const connect = useCallback(() => {
+    if (wsRef.current) return // a previous click is still connecting
     setError(null)
     const term = termRef.current!
     const ws = new WebSocket(wsUrl('/ws/uart'))
     ws.binaryType = 'arraybuffer'
+    let lastRx = Date.now()
+    let heartbeat: ReturnType<typeof setInterval> | undefined
+    const closed = () => {
+      clearInterval(heartbeat)
+      setConnected(false)
+      wsRef.current = null
+      term.write('\r\n\x1b[90m--- disconnected ---\x1b[0m\r\n')
+    }
     ws.onopen = () => {
       setConnected(true)
       ws.send(`baud ${baud} ${format}`)
       term.write(`\x1b[90m--- connected (${baud} ${format}) ---\x1b[0m\r\n`)
       term.focus()
+      lastRx = Date.now()
+      heartbeat = setInterval(() => {
+        if (Date.now() - lastRx < DEAD_MS) return ws.send('ping')
+        // A dead TCP peer can take minutes to report onclose, so give up right away.
+        setError('Device not responding (rebooted or Wi-Fi lost?)')
+        ws.onclose = null
+        ws.close()
+        closed()
+      }, PING_MS)
     }
     ws.onmessage = ev => {
+      lastRx = Date.now()
       if (typeof ev.data === 'string') {
         if (ev.data.startsWith('error') || ev.data.startsWith('busy')) setError(ev.data)
+        else if (ev.data.startsWith('warn')) term.write(`\r\n\x1b[33m--- ${ev.data} ---\x1b[0m\r\n`)
         return
       }
       const data = new Uint8Array(ev.data as ArrayBuffer)
@@ -107,11 +133,7 @@ export function UartPanel() {
       logSize.current += data.length
       while (logSize.current > MAX_LOG && logRef.current.length > 1) logSize.current -= logRef.current.shift()!.length
     }
-    ws.onclose = () => {
-      setConnected(false)
-      wsRef.current = null
-      term.write('\r\n\x1b[90m--- disconnected ---\x1b[0m\r\n')
-    }
+    ws.onclose = closed
     ws.onerror = () => setError('WebSocket error - is the UART bridge already in use?')
     wsRef.current = ws
   }, [baud, format])
