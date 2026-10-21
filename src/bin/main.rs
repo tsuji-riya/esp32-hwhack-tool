@@ -20,10 +20,8 @@ use esp_hal::time::Rate;
 use esp_hal::timer::timg::TimerGroup;
 use esp_hal::uart::{Config as UartConfig, Uart};
 use esp_println as _;
-use esp32_hwhack_tool::config::{
-    FLASH_DEVICES, SPI_DEFAULT_HZ, UART_DEFAULT_BAUD, WEB_TASKS, WIFI_SSID,
-};
-use esp32_hwhack_tool::flash_hub::{HUB, Hub};
+use esp32_hwhack_tool::config::{SPI_DEFAULT_HZ, UART_DEFAULT_BAUD, WEB_TASKS, WIFI_SSID};
+use esp32_hwhack_tool::serprog::{Programmer, serprog_task};
 use esp32_hwhack_tool::uart_bridge::uart_task;
 use esp32_hwhack_tool::{web, wifi};
 use static_cell::StaticCell;
@@ -39,8 +37,8 @@ fn panic(panic_info: &core::panic::PanicInfo) -> ! {
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
 esp_bootloader_esp_idf::esp_app_desc!();
 
-/// HTTP connections + DHCP client + DNS + headroom.
-static STACK_RESOURCES: StaticCell<StackResources<{ WEB_TASKS + 4 }>> = StaticCell::new();
+/// HTTP connections + serprog + DHCP client + DNS + headroom.
+static STACK_RESOURCES: StaticCell<StackResources<{ WEB_TASKS + 5 }>> = StaticCell::new();
 
 #[allow(
     clippy::large_stack_frames,
@@ -85,16 +83,14 @@ async fn main(spawner: Spawner) -> ! {
     .with_mosi(peripherals.GPIO23)
     .with_miso(peripherals.GPIO19)
     .into_async();
-    *HUB.lock().await = Some(Hub {
+    let programmer = Programmer {
         spi,
         cs: [
             Output::new(peripherals.GPIO5, Level::High, OutputConfig::default()),
             Output::new(peripherals.GPIO21, Level::High, OutputConfig::default()),
             Output::new(peripherals.GPIO22, Level::High, OutputConfig::default()),
         ],
-        infos: [None; FLASH_DEVICES],
-        hz: SPI_DEFAULT_HZ,
-    });
+    };
 
     // --- Wi-Fi station + network stack -------------------------------------------------------
     if WIFI_SSID.is_empty() {
@@ -118,6 +114,7 @@ async fn main(spawner: Spawner) -> ! {
     spawner.spawn(wifi::connection_task(controller).unwrap());
     spawner.spawn(wifi::net_task(runner).unwrap());
     spawner.spawn(wifi::report_task(stack).unwrap());
+    spawner.spawn(serprog_task(stack, programmer).unwrap());
     for id in 0..WEB_TASKS {
         spawner.spawn(web::web_task(id, stack).unwrap());
     }

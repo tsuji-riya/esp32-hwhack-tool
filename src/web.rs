@@ -1,4 +1,4 @@
-//! HTTP server: serves the React UI (embedded in flash) and the two WebSocket endpoints.
+//! HTTP server: serves the React UI (embedded in flash) and the UART WebSocket endpoint.
 
 use embassy_net::Stack;
 use embassy_time::Duration;
@@ -7,7 +7,6 @@ use picoserve::routing::{PathRouter, get, parse_path_segment};
 use picoserve::{Router, Timeouts};
 
 use crate::config::{HTTP_PORT, WEB_TASKS};
-use crate::flash_ws::FlashWs;
 use crate::uart_bridge::UartWs;
 
 include!(concat!(env!("OUT_DIR"), "/web_assets.rs"));
@@ -60,10 +59,6 @@ fn make_app() -> Router<impl PathRouter> {
         .route(
             "/ws/uart",
             get(|upgrade: WebSocketUpgrade| async move { upgrade.on_upgrade(UartWs) }),
-        )
-        .route(
-            "/ws/flash",
-            get(|upgrade: WebSocketUpgrade| async move { upgrade.on_upgrade(FlashWs) }),
         )
         // The segment parser consumes the leading `/` itself, so no "/" prefix here.
         .route(parse_path_segment::<heapless::String<64>>(), get(asset))

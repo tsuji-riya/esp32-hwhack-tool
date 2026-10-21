@@ -4,16 +4,11 @@ name         = "esp32-hwhack-tool"
 rust-version = "1.88"
 version      = "0.1.0"
 
-[workspace]
-members = [".", "crates/flash-core"]
-
 [[bin]]
 name = "esp32-hwhack-tool"
 path = "./src/bin/main.rs"
 
 [dependencies]
-flash-core = { path = "crates/flash-core" }
-
 esp-hal = { version = "~1.1.0", features = ["defmt", "esp32", "unstable"] }
 
 esp-rtos = { version = "0.3.0", features = ["defmt", "embassy", "esp32", "esp-radio", "esp-alloc"] }
@@ -37,8 +32,7 @@ embassy-sync     = "0.8.0"
 embedded-hal-async = "1.0.0"
 embedded-io-async = "0.7.0"
 heapless         = "0.9.3"
-picoserve        = { version = "0.20.1", default-features = false, features = ["defmt", "embassy", "json", "ws"] }
-serde            = { version = "1", default-features = false, features = ["derive"] }
+picoserve        = { version = "0.20.1", default-features = false, features = ["defmt", "embassy", "ws"] }
 
 
 # For fine tuning these settings, please refer to https://doc.rust-lang.org/cargo/reference/profiles.html
