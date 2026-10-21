@@ -7,11 +7,9 @@
     "dev": "vite",
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && vite build && node scripts/gzip-dist.mjs",
-    "test": "vitest run",
     "mock": "node scripts/mock-device.mjs"
   },
   "dependencies": {
-    "@primer/octicons-react": "^19.38.0",
     "@primer/primitives": "^11.10.0",
     "@primer/react": "^38.40.0",
     "@xterm/addon-fit": "^0.11.0",
@@ -28,7 +26,6 @@
     "react-is": "^19.3.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.1",
-    "vitest": "^5.0.3",
     "ws": "^8.22.0"
   }
 }

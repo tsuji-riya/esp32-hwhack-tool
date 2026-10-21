@@ -4,8 +4,7 @@
 extern crate alloc;
 
 pub mod config;
-pub mod flash_hub;
-pub mod flash_ws;
+pub mod serprog;
 pub mod uart_bridge;
 pub mod web;
 pub mod wifi;

@@ -43,7 +43,7 @@ pub async fn net_task(mut runner: Runner<'static, Interface<'static>>) -> ! {
     runner.run().await
 }
 
-/// Logs the URL to open each time a DHCP lease is obtained.
+/// Logs the URL to open (and the flashrom target) each time a DHCP lease is obtained.
 #[embassy_executor::task]
 pub async fn report_task(stack: Stack<'static>) {
     loop {
@@ -52,6 +52,11 @@ pub async fn report_task(stack: Stack<'static>) {
             defmt::info!(
                 "Open http://{}/ in your browser",
                 defmt::Display2Format(&cfg.address.address())
+            );
+            defmt::info!(
+                "flashrom -p serprog:ip={}:{}",
+                defmt::Display2Format(&cfg.address.address()),
+                crate::config::SERPROG_PORT
             );
         }
         stack.wait_config_down().await;
